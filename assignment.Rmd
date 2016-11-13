@@ -13,9 +13,32 @@ Start by downloading and loading the data
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-training.csv")
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-testing.csv")
 train <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-training.csv")
-train <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-testin.csv")
+test <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-testing.csv")
 ```
 
+Remove non predictive variables and find eligible variables on test data (ie. remove variables with all NA's or same level as not useful for prediction).
+```{r}
+nonpred_vars <- c("user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window", "num_window")
+train_model <- train[, !(names(train) %in% nonpred_vars)]
+test_model <- test[, !(names(test) %in% nonpred_vars)]
+allNA <- sapply(test_model, function(x) all(is.na(x)))
+train_model <- train_model[, !allNA]
+test_model <- test_model[, !allNA]
+```
+
+Do some EDA...
+```{r}
+
+
+```
+
+Decision Tree
+
+GBM
+
+Random Forest
+
+Estimate out of sample error (k fold cross validation)
 ## Including Plots
 
 You can also embed plots, for example:
