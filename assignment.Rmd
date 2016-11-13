@@ -18,12 +18,23 @@ test <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pm
 
 Remove non predictive variables and find eligible variables on test data (ie. remove variables with all NA's or same level as not useful for prediction).
 ```{r}
+# drop non predictive variables
 nonpred_vars <- c("user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window", "num_window")
-train_model <- train[, !(names(train) %in% nonpred_vars)]
-test_model <- test[, !(names(test) %in% nonpred_vars)]
-allNA <- sapply(test_model, function(x) all(is.na(x)))
-train_model <- train_model[, !allNA]
-test_model <- test_model[, !allNA]
+train_clean <- train[, !(names(train) %in% nonpred_vars)]
+test_clean <- test[, !(names(test) %in% nonpred_vars)]
+
+# drop all the missing variables (on test)
+allNA <- sapply(test_clean, function(x) all(is.na(x)))
+train_clean <- train_clean[, !allNA]
+test_clean <- test_clean[, !allNA]
+
+# partition train data
+library(caret)
+set.seed(1234)
+inTrain <- createDataPartition(y=train_clean$classe,
+                              p=0.7, list=FALSE)
+train_mod <- train_clean[inTrain,]
+test_mod <- train_clean[-inTrain,]
 ```
 
 Do some EDA...
@@ -33,10 +44,25 @@ Do some EDA...
 ```
 
 Decision Tree
+```{r}
+
+library(caret)
+modFit <- train(Species ~ .,method="rpart",data=training)
+print(modFit$finalModel)
+library(rattle)
+fancyRpartPlot(modFit$finalModel)
+predict(modFit,newdata=testing)
+```
 
 GBM
+```{r}
+
+```
 
 Random Forest
+```{r}
+
+```
 
 Estimate out of sample error (k fold cross validation)
 ## Including Plots
