@@ -19,7 +19,7 @@ test <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pm
 Remove non predictive variables and find eligible variables on test data (ie. remove variables with all NA's or same level as not useful for prediction).
 ```{r}
 # drop non predictive variables
-nonpred_vars <- c("user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window", "num_window")
+nonpred_vars <- c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window", "num_window")
 train_clean <- train[, !(names(train) %in% nonpred_vars)]
 test_clean <- test[, !(names(test) %in% nonpred_vars)]
 
@@ -45,26 +45,73 @@ Do some EDA...
 
 Decision Tree
 ```{r}
+# Fit simple decision tree with defaults
+dec_tree <- train(classe ~ ., method="rpart", data=train_mod)
 
-library(caret)
-modFit <- train(Species ~ .,method="rpart",data=training)
-print(modFit$finalModel)
-library(rattle)
-fancyRpartPlot(modFit$finalModel)
-predict(modFit,newdata=testing)
+# Look at results
+dec_tree$finalModel
+
+plot(dec_tree$finalModel, uniform=TRUE, 
+      main="Classification Tree")
+text(dec_tree$finalModel, use.n=TRUE, all=TRUE, cex=.8)
+
+# Score model on train and test
+train_mod$dec_tree_pred <- predict(dec_tree, train_mod)
+test_mod$dec_tree_pred <- predict(dec_tree, test_mod)
+
+# get accuracy
+confusionMatrix(train_mod$dec_tree_pred, train_mod$classe)[[3]][1]
+confusionMatrix(test_mod$dec_tree_pred, test_mod$classe)[[3]][1]
+
+#library(rattle)
+#fancyRpartPlot(dec_tree$finalModel)
 ```
 
 GBM
 ```{r}
+# Fit gbm with defaults
+control_gbm <- trainControl(method = "cv", number = 5)
+gbm <- train(classe ~ . - dec_tree_pred, data=train_mod, method = "gbm", 
+             trControl = control_gbm, verbose = FALSE)
 
+# Look at results
+gbm$finalModel
+
+# Score model on train and test
+train_mod$gbm_pred <- predict(gbm, train_mod)
+test_mod$gbm_pred <- predict(gbm, test_mod)
+
+# get accuracy
+confusionMatrix(train_mod$gbm_pred, train_mod$classe)[[3]][1]
+confusionMatrix(test_mod$gbm_pred, test_mod$classe)[[3]][1]
 ```
 
 Random Forest
 ```{r}
+# Fit gbm with defaults
+control_rf <- trainControl(method="cv", number=5)
+rf <- train(classe ~ . - dec_tree_pred - gbm_pred, method="rf",
+            data=train_mod, trControl=control_rf)
 
+# Look at results
+rf$finalModel
+
+# Score model on train and test
+train_mod$rf_pred <- predict(rf, train_mod)
+test_mod$rf_pred <- predict(rf, test_mod)
+
+# get accuracy
+confusionMatrix(train_mod$rf_pred, train_mod$classe)[[3]][1]
+confusionMatrix(test_mod$rf_pred, test_mod$classe)[[3]][1]
 ```
 
-Estimate out of sample error (k fold cross validation)
+Apply to 20 row test data
+```{r}
+test_clean$dec_tree_pred <- predict(dec_tree, test_clean)
+test_clean$gbm_pred <- predict(gbm, test_clean)
+prediction_quiz <- predict(rf, test_clean)
+```
+
 ## Including Plots
 
 You can also embed plots, for example:
