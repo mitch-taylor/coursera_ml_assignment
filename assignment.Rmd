@@ -7,6 +7,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+INTRODUCTION
+
+
+
+
 Start by downloading and loading the data
 
 ```{r download and load data}
@@ -37,11 +42,14 @@ train_mod <- train_clean[inTrain,]
 test_mod <- train_clean[-inTrain,]
 ```
 
-Do some EDA...
+Do some EDA...Correlation / Plots
 ```{r}
 
 
 ```
+
+MODELING PROCESS
+
 
 Decision Tree
 ```{r}
@@ -105,17 +113,13 @@ confusionMatrix(train_mod$rf_pred, train_mod$classe)[[3]][1]
 confusionMatrix(test_mod$rf_pred, test_mod$classe)[[3]][1]
 ```
 
+CONCLUSION
+
+
+
 Apply to 20 row test data
 ```{r}
 test_clean$dec_tree_pred <- predict(dec_tree, test_clean)
 test_clean$gbm_pred <- predict(gbm, test_clean)
 prediction_quiz <- predict(rf, test_clean)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
