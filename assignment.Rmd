@@ -1,27 +1,26 @@
 ---
-title: "machine learning assignment"
+title: "Coursera Practical Machine Learning Assignment"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Introduction
+============
+The following report seeks to evaluate the ability to use wearable fitness technology in evaluating the quality of weight lifting movements. Using accelerometers on the belt, forearm, arm, and dumbell of 6 participants we seek to classify whether movements have been performed correctly and, if not, to classify the type of mistake. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har.
 
-INTRODUCTION
+Data Collection
+===============
+We start our analysis by downloading and loading the data.
 
-
-
-
-Start by downloading and loading the data
-
-```{r download and load data}
+```{r}
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-training.csv")
 download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-testing.csv")
 train <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-training.csv")
 test <- read.csv("/Users/mitchelltaylor/coursera/assignments/machine_learning/pml-testing.csv")
 ```
 
-Remove non predictive variables and find eligible variables on test data (ie. remove variables with all NA's or same level as not useful for prediction).
+Data Cleaning
+=============
+Before performing any analysis we note from visual inspection that there are a significant number of columns with all missing data. As these variables will not be useful for prediction we remove them up front. Additionally, we drop another set of variables also deemed not important for prediction purposes (time and date variables, names, id variables). Note we used the test data set to evaluate whether a variable was completely missing or not as scoring this data set is the ultimate aim of the assignment.
 ```{r}
 # drop non predictive variables
 nonpred_vars <- c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "new_window", "num_window")
@@ -32,7 +31,13 @@ test_clean <- test[, !(names(test) %in% nonpred_vars)]
 allNA <- sapply(test_clean, function(x) all(is.na(x)))
 train_clean <- train_clean[, !allNA]
 test_clean <- test_clean[, !allNA]
+```
 
+Data Partitioning
+=================
+In order to evaluate model performance on an independent set of data we partition our initial train data set into new train and test tables. In this instance we have retained 70% of the data for model training.
+
+```{r}
 # partition train data
 library(caret)
 set.seed(1234)
@@ -42,27 +47,31 @@ train_mod <- train_clean[inTrain,]
 test_mod <- train_clean[-inTrain,]
 ```
 
-Do some EDA...Correlation / Plots
-```{r}
-
-
-```
-
-MODELING PROCESS
-
+Model Building
+=============
+As the assignment relates to a classification problem (assigning a movement to 1 on 5 classes) we decide to evaluate 3 different machine learning models:
+-Decision Trees
+-Gradient Boosting Machines
+-Random Forests
+Each model is fit and evaluated separately below.
 
 Decision Tree
+-------------
+We initially build a simple decision tree model using the defaults pre-programmed in the relevant function. We also print the final tree fit.
+
 ```{r}
 # Fit simple decision tree with defaults
 dec_tree <- train(classe ~ ., method="rpart", data=train_mod)
 
 # Look at results
 dec_tree$finalModel
-
 plot(dec_tree$finalModel, uniform=TRUE, 
       main="Classification Tree")
 text(dec_tree$finalModel, use.n=TRUE, all=TRUE, cex=.8)
+```
 
+We can now evaluate the model performance on both train and test data sets. In this instance the accuracy of the model is below what we would like in the context of this experiment.
+```{r}
 # Score model on train and test
 train_mod$dec_tree_pred <- predict(dec_tree, train_mod)
 test_mod$dec_tree_pred <- predict(dec_tree, test_mod)
@@ -70,12 +79,11 @@ test_mod$dec_tree_pred <- predict(dec_tree, test_mod)
 # get accuracy
 confusionMatrix(train_mod$dec_tree_pred, train_mod$classe)[[3]][1]
 confusionMatrix(test_mod$dec_tree_pred, test_mod$classe)[[3]][1]
-
-#library(rattle)
-#fancyRpartPlot(dec_tree$finalModel)
 ```
 
 GBM
+---
+Similarly we fit a GBM model with 5 fold cross validation and the function defaults.
 ```{r}
 # Fit gbm with defaults
 control_gbm <- trainControl(method = "cv", number = 5)
@@ -84,7 +92,10 @@ gbm <- train(classe ~ . - dec_tree_pred, data=train_mod, method = "gbm",
 
 # Look at results
 gbm$finalModel
+```
 
+On evaluation of the model we see the model performs well on both train and test datasets. 
+```{r}
 # Score model on train and test
 train_mod$gbm_pred <- predict(gbm, train_mod)
 test_mod$gbm_pred <- predict(gbm, test_mod)
@@ -94,7 +105,9 @@ confusionMatrix(train_mod$gbm_pred, train_mod$classe)[[3]][1]
 confusionMatrix(test_mod$gbm_pred, test_mod$classe)[[3]][1]
 ```
 
-Random Forest
+Random Forests
+-------------
+Finally we fit a random forests model with 5-fold cross valiation and function defaults.
 ```{r}
 # Fit gbm with defaults
 control_rf <- trainControl(method="cv", number=5)
@@ -103,7 +116,10 @@ rf <- train(classe ~ . - dec_tree_pred - gbm_pred, method="rf",
 
 # Look at results
 rf$finalModel
+```
 
+The random forests model performs best of all models evaluated with an impressive accuracy rate. We will use this model for predicting on the test data provided.
+```{r}
 # Score model on train and test
 train_mod$rf_pred <- predict(rf, train_mod)
 test_mod$rf_pred <- predict(rf, test_mod)
@@ -113,11 +129,9 @@ confusionMatrix(train_mod$rf_pred, train_mod$classe)[[3]][1]
 confusionMatrix(test_mod$rf_pred, test_mod$classe)[[3]][1]
 ```
 
-CONCLUSION
 
-
-
-Apply to 20 row test data
+Apply Final Model to Test Data
+-------------------------------
 ```{r}
 test_clean$dec_tree_pred <- predict(dec_tree, test_clean)
 test_clean$gbm_pred <- predict(gbm, test_clean)
